@@ -1,17 +1,18 @@
 package org.example;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+import org.springframework.security.crypto.encrypt.Encryptors;
+import org.springframework.security.crypto.encrypt.TextEncryptor;
+import org.springframework.security.crypto.keygen.KeyGenerators;
+
+import javax.crypto.KeyGenerator;
+import java.io.*;
+import java.nio.CharBuffer;
 import java.nio.file.Files;
+import java.security.Security;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
-
-/**
- * Hello world!
- *
- */
 public class App 
 {
     public static void main( String[] args ) throws IOException {
@@ -24,34 +25,27 @@ public class App
             System.exit(0);
         }
         FileReader fileReader = new FileReader(file);
-        char[] buffer = new char[1024];
-        int res = fileReader.read(buffer);
-        if (res == 0) {
-            System.out.println("File was empty");
-            System.exit(0);
+        StringBuilder buffer = new StringBuilder();
+        int tmp;
+        while ((tmp = fileReader.read()) != -1) {
+            buffer.append((char) tmp);
         }
-        System.out.println(buffer);
-        int key = encrypt(buffer);
-        System.out.printf("This is encrypted content: %s%n", new String(buffer, 0, res));
-        decrypt(buffer, key);
-        System.out.printf("This is decrypted content: %s%n", new String(buffer, 0, res));
-    }
+        System.out.println("Initial content: " + buffer);
 
+        String password = "MySecretPassword123";
+        String salt = KeyGenerators.string().generateKey();
 
-    public static int encrypt(char[] s) {
-        Random random = new Random();
-        int offset = random.nextInt(65536);
-        for (int i = 0; i < s.length; i++) {
-            s[i] += offset;
-            s[i] %= 65536;
-        }
-        System.out.println();
-        return offset;
-    }
+        TextEncryptor textEncryptor = Encryptors.text(password, salt);
 
-    public static void decrypt(char[] s, int key) {
-        for (int i = 0; i < s.length; i++) {
-            s[i] -= key;
-        }
+        String encrypted = textEncryptor.encrypt(buffer.toString());
+        System.out.println("Encrypted: " + encrypted);
+
+        FileWriter fileWriter = new FileWriter("encrypted.txt");
+        fileWriter.write(encrypted);
+        fileWriter.flush();
+
+        String decrypted = textEncryptor.decrypt(encrypted);
+        System.out.println("Decrypted: " + decrypted);
+
     }
 }
